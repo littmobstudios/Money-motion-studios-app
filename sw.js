@@ -1,7 +1,7 @@
 // MONEY MOTION STUDIOS - service worker
 // Strategy: always try the network first so the app is fresh on every open;
 // the cache is only an offline fallback.
-const CACHE = "money-motion-v35";
+const CACHE = "money-motion-v36";
 const SHELL = [
   "./", "./index.html", "./gallery.html", "./artists.html", "./producers.html", "./fame.html", "./global.html", "./chat.html", "./book.html", "./pay.html", "./live.html", "./dashboard.html",
   "./css/style.css", "./js/config.js", "./js/store.js", "./js/logo-data.js", "./js/pwa.js", "./js/mme.js", "./js/chat.js", "./js/artists-data.js", "./js/artists.js", "./js/producers-data.js", "./js/producers.js", "./js/beats-data.js", "./js/beats.js",

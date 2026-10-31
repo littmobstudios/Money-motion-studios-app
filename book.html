@@ -57,14 +57,29 @@
     <label for="f-service">Service *</label>
     <select id="f-service" name="service" required></select>
 
-    <div id="blocks-zone">
-      <label for="f-blocks">Session length *</label>
-      <select id="f-blocks" name="blocks">
-        <option value="1">5 hours (1 block)</option>
-        <option value="2">10 hours (2 blocks)</option>
-        <option value="3">15 hours (3 blocks)</option>
-      </select>
-      <p class="hint">Studio time is booked in 5-hour blocks at $150 each — pick how many hours you need. Free <strong style="color:var(--gold)">ROUGH</strong> mixing is included in your session.</p>
+    <div id="length-zone">
+      <label>How do you want to book? *</label>
+      <div style="display:grid;gap:6px;margin:2px 0 10px;">
+        <label style="font-weight:600;"><input type="radio" name="f-mode" value="package" checked> 5-Hour Package — $150 per 5 hours</label>
+        <label style="font-weight:600;"><input type="radio" name="f-mode" value="hourly"> By the Hour — $60/hr · 2-hour minimum</label>
+      </div>
+      <div id="blocks-zone">
+        <label for="f-blocks">Package length *</label>
+        <select id="f-blocks" name="blocks">
+          <option value="1">5 hours (1 block)</option>
+          <option value="2">10 hours (2 blocks)</option>
+          <option value="3">15 hours (3 blocks)</option>
+        </select>
+      </div>
+      <div id="hourly-zone" style="display:none;">
+        <label for="f-hours">Hours *</label>
+        <select id="f-hours" name="hours">
+          <option value="2">2 hours</option>
+          <option value="3">3 hours</option>
+          <option value="4">4 hours</option>
+        </select>
+      </div>
+      <p class="hint">Two ways to book studio time: single hours at $60/hr (2-hour minimum, up to 4 hours), or the 5-hour package at $150 per 5 hours. Free <strong style="color:var(--gold)">ROUGH</strong> mixing is included either way.</p>
     </div>
 
     <div class="form-row">
@@ -111,20 +126,32 @@ const svcById = {};
     svcById[s.id] = s;
     const opt = document.createElement("option");
     opt.value = s.id;
-    opt.textContent = s.name + " — $" + s.price + (s.blurb ? " (" + s.blurb + ")" : "");
+    opt.textContent = s.menu || (s.name + " — $" + s.price + (s.blurb ? " (" + s.blurb + ")" : ""));
     sel.appendChild(opt);
   });
 })();
 
-// Work out the real booking from the form: service, blocks, hours,
-// price, start and end — one source of truth for summary + submit.
+function bookMode() {
+  const r = document.querySelector('input[name="f-mode"]:checked');
+  return r ? r.value : "package";
+}
+
+// Work out the real booking from the form: service, blocks or single
+// hours, price, start and end — one source of truth for summary + submit.
+// Studio time books two ways (Keyz, 2026-10-31): by the hour at $60/hr
+// (2-hour minimum, up to 4) or the 5-hour package at $150 per 5 hours.
 function computeBooking() {
   const svc = svcById[document.getElementById("f-service").value];
   const blocks = parseInt(document.getElementById("f-blocks").value, 10) || 1;
   const date = document.getElementById("f-date").value;
   const time = document.getElementById("f-time").value;
-  const out = { svc: svc, blocks: blocks, session: !!svc.session, hours: null, price: svc.price, label: svc.short, startsAt: null, endsAt: null };
-  if (svc.session) {
+  const mode = bookMode();
+  const out = { svc: svc, blocks: blocks, mode: mode, session: !!svc.session, hours: null, price: svc.price, label: svc.short, startsAt: null, endsAt: null };
+  if (svc.session && mode === "hourly") {
+    out.hours = parseInt(document.getElementById("f-hours").value, 10) || MM_CONFIG.HOURLY.min;
+    out.price = (svc.base || 0) + MM_CONFIG.HOURLY.rate * out.hours;
+    out.label = svc.short + " — " + out.hours + " Hours (by the hour)";
+  } else if (svc.session) {
     out.hours = blocks * 5;
     out.price = (svc.base || 0) + (svc.block || 0) * blocks;
     out.label = svc.short + " — " + out.hours + " Hours";
@@ -146,7 +173,9 @@ function fmtTime(d) {
 
 function refreshSummary() {
   const c = computeBooking();
-  document.getElementById("blocks-zone").style.display = c.session ? "" : "none";
+  document.getElementById("length-zone").style.display = c.session ? "" : "none";
+  document.getElementById("blocks-zone").style.display = c.session && c.mode !== "hourly" ? "" : "none";
+  document.getElementById("hourly-zone").style.display = c.session && c.mode === "hourly" ? "" : "none";
   const box = document.getElementById("book-summary");
   if (!c.startsAt) {
     box.innerHTML = "Pick your service, date and start time — your full session shows here.";
@@ -163,8 +192,11 @@ function refreshSummary() {
     "<br>Total $" + c.price + " · $" + MM_CONFIG.BOOKING_FEE + " booking fee due now to lock it in.";
 }
 
-["f-service", "f-blocks", "f-date", "f-time"].forEach(function (id) {
+["f-service", "f-blocks", "f-hours", "f-date", "f-time"].forEach(function (id) {
   document.getElementById(id).addEventListener("change", refreshSummary);
+});
+document.querySelectorAll('input[name="f-mode"]').forEach(function (r) {
+  r.addEventListener("change", refreshSummary);
 });
 // No booking in the past: the calendar starts at today.
 (function () {

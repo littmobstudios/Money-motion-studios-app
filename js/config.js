@@ -32,11 +32,15 @@ window.MM_CONFIG = {
   // hours = 5 x blocks. (Studio Time: $150/block. Studio + Mix & Master adds
   // the flat $300 mix & master on top of the blocks.)
   SERVICES: [
-    { id: "studio5",  name: "Studio Time — 5 Hours",        short: "Studio Time",              session: true,  base: 0,   block: 150, price: 150, blurb: "Free ROUGH mixing included" },
-    { id: "mixmaster", name: "Mix & Master Only",           short: "Mix & Master Only",        session: false, price: 300, blurb: "Send your session, get a finished record" },
-    { id: "full",     name: "Studio Time + Mix & Master",   short: "Studio Time + Mix & Master", session: true, base: 300, block: 150, price: 450, blurb: "5 hours in the booth plus full mix & master" }
+    { id: "studio5",  name: "Studio Time — 5 Hours",        short: "Studio Time",              session: true,  base: 0,   block: 150, price: 150, blurb: "Free ROUGH mixing included", menu: "Studio Time — $60/hr (2 hr min) or $150 / 5 hrs · Free ROUGH mixing included" },
+    { id: "mixmaster", name: "Mix & Master Only",           short: "Mix & Master Only",        session: false, price: 300, blurb: "Send your session, get a finished record", menu: "Mix & Master Only — $300 (Send your session, get a finished record)" },
+    { id: "full",     name: "Studio Time + Mix & Master",   short: "Studio Time + Mix & Master", session: true, base: 300, block: 150, price: 450, blurb: "5 hours in the booth plus full mix & master", menu: "Studio Time + Mix & Master — from $450 (In the booth plus full mix & master)" }
   ],
   BOOKING_FEE: 50,
+
+  // By-the-hour studio booking (Keyz, 2026-10-31): single hours at $60/hr,
+  // 2-hour minimum, up to 4 hours — the alternative to the 5-hour package.
+  HOURLY: { rate: 60, min: 2, max: 4 },
 
   STUDIO: {
     name: "MONEY MOTION STUDIOS",
