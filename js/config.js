@@ -28,10 +28,13 @@ window.MM_CONFIG = {
   },
 
   // The studio's rate card. Prices are whole dollars.
+  // Session services are booked in 5-hour blocks: price = base + block x blocks,
+  // hours = 5 x blocks. (Studio Time: $150/block. Studio + Mix & Master adds
+  // the flat $300 mix & master on top of the blocks.)
   SERVICES: [
-    { id: "studio5",  name: "Studio Time — 5 Hours",        price: 150, blurb: "Free ROUGH mixing included" },
-    { id: "mixmaster", name: "Mix & Master Only",           price: 300, blurb: "Send your session, get a finished record" },
-    { id: "full",     name: "Studio Time + Mix & Master",   price: 450, blurb: "5 hours in the booth plus full mix & master" }
+    { id: "studio5",  name: "Studio Time — 5 Hours",        short: "Studio Time",              session: true,  base: 0,   block: 150, price: 150, blurb: "Free ROUGH mixing included" },
+    { id: "mixmaster", name: "Mix & Master Only",           short: "Mix & Master Only",        session: false, price: 300, blurb: "Send your session, get a finished record" },
+    { id: "full",     name: "Studio Time + Mix & Master",   short: "Studio Time + Mix & Master", session: true, base: 300, block: 150, price: 450, blurb: "5 hours in the booth plus full mix & master" }
   ],
   BOOKING_FEE: 50,
 

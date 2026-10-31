@@ -22,6 +22,8 @@ create table if not exists public.bookings (
   price          int  not null,
   fee_due        int  not null default 50,
   starts_at      timestamptz,
+  ends_at        timestamptz,
+  hours          numeric,
   notes          text,
   status         text not null default 'Pending payment',
   created_at     timestamptz not null default now()

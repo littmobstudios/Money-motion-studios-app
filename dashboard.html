@@ -150,6 +150,21 @@ function fmtWhen(iso) {
   return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }) +
          " " + d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
+function fmtTimeOnly(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+function bookingHours(b) {
+  if (b.hours) return parseFloat(b.hours);
+  const m = /(\d+(?:\.\d+)?)\s*(?:hours|hrs)/i.exec(b.service || "");
+  return m ? parseFloat(m[1]) : null;
+}
+function bookingEnds(b) {
+  if (b.ends_at) return b.ends_at;
+  const h = bookingHours(b);
+  if (h && b.starts_at) return new Date(new Date(b.starts_at).getTime() + h * 3600 * 1000).toISOString();
+  return null;
+}
 
 async function renderBookings() {
   const list = document.getElementById("bookings-list");
@@ -168,10 +183,13 @@ async function renderBookings() {
         ' <span class="status-pill ' + pillClass(b.status) + '">' + esc(b.status) + '</span></div>' +
         '<div class="meta">' + esc(b.service) + ' · $' + esc(b.price) + ' total · $' + esc(b.fee_due) + ' fee' +
         '<br>Session: ' + fmtWhen(b.starts_at) +
+          (bookingEnds(b) ? ' – ' + fmtTimeOnly(bookingEnds(b)) : '') +
+          (bookingHours(b) ? ' · <strong>' + bookingHours(b) + ' hours</strong>' : '') +
         '<br>' + esc(b.phone) + (b.email ? ' · ' + esc(b.email) : '') +
         (b.notes ? '<br>Notes: ' + esc(b.notes) : '') +
         '<br>Booked: ' + fmtWhen(b.created_at) + '</div>' +
         '<div class="booking-actions">' +
+          '<a class="btn btn-ghost btn-small" href="pay.html?n=' + encodeURIComponent(b.booking_number) + '" target="_blank" rel="noopener">Receipt</a>' +
           '<button class="btn btn-gold btn-small" data-act="Confirmed">Confirm Payment</button>' +
           '<button class="btn btn-ghost btn-small" data-act="Completed">Mark Completed</button>' +
           '<button class="btn btn-danger btn-small" data-act="Cancelled">Cancel</button>' +

@@ -445,3 +445,18 @@ body, a, button, .btn, input, select, textarea, label, summary { cursor: url("da
   0%, 100% { box-shadow: 0 2px 14px rgba(255,255,255,.22), inset 0 1px 0 #ffffff, inset 0 -2px 6px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.55); }
   50% { box-shadow: 0 2px 32px rgba(255,255,255,.55), inset 0 1px 0 #ffffff, inset 0 -2px 6px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.55); }
 }
+
+/* ---------- booking receipt (pay page + print) ---------- */
+.receipt { background: #ffffff; color: #141414; border-radius: 10px; padding: 18px 18px 10px; margin: 16px 0; box-shadow: 0 2px 14px rgba(0,0,0,.35); }
+.receipt-head { text-align: center; font-size: 12px; color: #444; line-height: 1.5; border-bottom: 2px solid #141414; padding-bottom: 8px; }
+.receipt-head strong { font-size: 17px; letter-spacing: 1px; color: #141414; }
+.receipt-title { margin-top: 6px; font-size: 13px; font-weight: 800; letter-spacing: 3px; color: #141414; }
+.receipt .rrow { display: flex; justify-content: space-between; gap: 14px; padding: 6px 0; border-bottom: 1px dashed #c9c9c9; font-size: 14px; }
+.receipt .rrow span:first-child { color: #666; }
+.receipt .rrow span:last-child { font-weight: 700; text-align: right; }
+.receipt-foot { font-size: 12px; color: #555; text-align: center; margin: 10px 0 6px; line-height: 1.5; }
+@media print {
+  body * { visibility: hidden; }
+  #receipt, #receipt * { visibility: visible; }
+  #receipt { position: absolute; left: 0; right: 0; top: 0; box-shadow: none; }
+}

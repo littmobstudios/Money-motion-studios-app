@@ -47,6 +47,18 @@
       <p class="hint">Loading your booking…</p>
     </div>
 
+    <div id="receipt" class="receipt" style="display:none;">
+      <div class="receipt-head">
+        <strong>MONEY MOTION STUDIOS</strong><br>
+        <span>an affiliate of GLOBAL VIZION ENTERPRISE</span><br>
+        <span>2 Saint Nicholas Ave, Brooklyn, NY 11237 · 718-908-8466</span>
+        <div class="receipt-title">BOOKING RECEIPT</div>
+      </div>
+      <div id="receipt-rows"></div>
+      <p class="receipt-foot">Keep this receipt — it shows exactly what you booked: service, date, start and end time, and hours. No confusion.<br>KEYZ — Money Motion Engineer 🎚️ From the block to the booth.</p>
+    </div>
+    <button class="btn btn-ghost" id="receipt-btn" type="button" style="display:none;width:100%;margin-bottom:16px;">🖨 Print / Save My Receipt</button>
+
     <div class="pay-amount">
       <p class="hint" style="margin-bottom:2px;">DUE NOW — BOOKING FEE</p>
       <div class="due" id="due-now">$50</div>
@@ -118,6 +130,48 @@ function fmtWhen(iso) {
          " at " + d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+// The receipt: the exact same facts the studio sees — service, date,
+// start AND end time, hours, money. Shown to the customer here and
+// mirrored in the owner dashboard, so there is no confusion.
+function receiptHours(b) {
+  if (b.hours) return parseFloat(b.hours);
+  const m = /(\d+(?:\.\d+)?)\s*(?:hours|hrs)/i.exec(b.service || "");
+  return m ? parseFloat(m[1]) : null;
+}
+
+function renderReceipt(b, total, due) {
+  const hours = receiptHours(b);
+  let endsIso = b.ends_at || null;
+  if (!endsIso && hours && b.starts_at) {
+    endsIso = new Date(new Date(b.starts_at).getTime() + hours * 3600 * 1000).toISOString();
+  }
+  function row(k, v) {
+    return '<div class="rrow"><span>' + k + '</span><span>' + v + '</span></div>';
+  }
+  let html = "";
+  html += row("Booking #", esc(b.booking_number));
+  html += row("Customer", esc(b.name));
+  if (b.phone) html += row("Phone", esc(b.phone));
+  if (b.email) html += row("Email", esc(b.email));
+  html += row("Service", esc(b.service));
+  if (b.starts_at) html += row("Date", esc(fmtWhen(b.starts_at).split(" at ")[0]));
+  if (b.starts_at) html += row("Starts", esc(fmtWhen(b.starts_at).split(" at ")[1] || ""));
+  if (endsIso) html += row("Ends", esc(fmtWhen(endsIso)));
+  if (hours) html += row("Session length", hours + " hours");
+  if (/studio/i.test(b.service || "")) html += row("Included", "Free ROUGH mixing");
+  html += row("Service total", "$" + total);
+  html += row("Booking fee", "$" + due + (/payment sent|confirmed|completed/i.test(b.status || "") ? " — sent" : " — due now"));
+  html += row("Balance at session", "$" + Math.max(total - due, 0));
+  html += row("Status", esc(b.status));
+  if (b.notes) html += row("Notes", esc(b.notes));
+  if (b.created_at) html += row("Booked on", esc(fmtWhen(b.created_at)));
+  document.getElementById("receipt-rows").innerHTML = html;
+  document.getElementById("receipt").style.display = "";
+  const btn = document.getElementById("receipt-btn");
+  btn.style.display = "";
+  btn.onclick = function () { window.print(); };
+}
+
 async function init() {
   // Payment handles come from settings (dashboard-editable),
   // with config.js defaults as fallback — never hard-coded here.
@@ -158,6 +212,8 @@ async function init() {
   const total = booking.price || 0;
   const due = booking.fee_due || fee;
   balance.textContent = "Service total $" + total + " — after the $" + due + " fee, your balance at the session is $" + Math.max(total - due, 0) + ".";
+
+  renderReceipt(booking, total, due);
 
   if (/payment sent|confirmed/i.test(booking.status || "")) {
     showPaidState();

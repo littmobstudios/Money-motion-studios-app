@@ -84,14 +84,27 @@
     // Supabase: generate a number, retry once or twice on the
     // (very unlikely) unique-collision.
     let lastErr = null;
+    let stripSessionCols = false;
     for (let attempt = 0; attempt < 3; attempt++) {
       const row = Object.assign({}, input, {
         booking_number: newBookingNumber(null),
         status: "Pending payment"
       });
+      if (stripSessionCols) {
+        // The hours/ends_at columns are not in the table (yet): keep the
+        // booking working — drop the columns and fold the hours into the
+        // service label so the dashboard + receipt still show them.
+        delete row.hours;
+        delete row.ends_at;
+        if (input.hours) row.service = input.service + " (" + input.hours + " hrs)";
+      }
       const { data, error } = await sb.from("bookings").insert(row).select().single();
       if (!error) return data;
       lastErr = error;
+      if (!stripSessionCols && /hours|ends_at|column/i.test(error.message || "")) {
+        stripSessionCols = true;
+        continue;
+      }
       if (!/duplicate|unique/i.test(error.message || "")) break;
     }
     throw lastErr;

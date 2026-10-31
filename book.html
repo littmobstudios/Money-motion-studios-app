@@ -57,6 +57,16 @@
     <label for="f-service">Service *</label>
     <select id="f-service" name="service" required></select>
 
+    <div id="blocks-zone">
+      <label for="f-blocks">Session length *</label>
+      <select id="f-blocks" name="blocks">
+        <option value="1">5 hours (1 block)</option>
+        <option value="2">10 hours (2 blocks)</option>
+        <option value="3">15 hours (3 blocks)</option>
+      </select>
+      <p class="hint">Studio time is booked in 5-hour blocks at $150 each — pick how many hours you need. Free <strong style="color:var(--gold)">ROUGH</strong> mixing is included in your session.</p>
+    </div>
+
     <div class="form-row">
       <div>
         <label for="f-date">Date *</label>
@@ -67,6 +77,8 @@
         <input id="f-time" name="time" type="time" required>
       </div>
     </div>
+
+    <div class="note-strip" id="book-summary" style="margin:4px 0 14px;">Pick your service, date and start time — your full session shows here.</div>
 
     <label for="f-notes">Notes</label>
     <textarea id="f-notes" name="notes" rows="3" placeholder="Anything we should know — number of songs, engineer requests, etc."></textarea>
@@ -92,17 +104,75 @@
 MMStore.showDemoNotice();
 
 // Populate the service select from the rate card in config.js.
+const svcById = {};
 (function () {
   const sel = document.getElementById("f-service");
   MM_CONFIG.SERVICES.forEach(function (s) {
+    svcById[s.id] = s;
     const opt = document.createElement("option");
     opt.value = s.id;
     opt.textContent = s.name + " — $" + s.price + (s.blurb ? " (" + s.blurb + ")" : "");
-    opt.dataset.price = s.price;
-    opt.dataset.name = s.name;
     sel.appendChild(opt);
   });
 })();
+
+// Work out the real booking from the form: service, blocks, hours,
+// price, start and end — one source of truth for summary + submit.
+function computeBooking() {
+  const svc = svcById[document.getElementById("f-service").value];
+  const blocks = parseInt(document.getElementById("f-blocks").value, 10) || 1;
+  const date = document.getElementById("f-date").value;
+  const time = document.getElementById("f-time").value;
+  const out = { svc: svc, blocks: blocks, session: !!svc.session, hours: null, price: svc.price, label: svc.short, startsAt: null, endsAt: null };
+  if (svc.session) {
+    out.hours = blocks * 5;
+    out.price = (svc.base || 0) + (svc.block || 0) * blocks;
+    out.label = svc.short + " — " + out.hours + " Hours";
+  }
+  if (date && time) {
+    const start = new Date(date + "T" + time);
+    out.startsAt = start.toISOString();
+    if (out.hours) out.endsAt = new Date(start.getTime() + out.hours * 3600 * 1000).toISOString();
+  }
+  return out;
+}
+
+function fmtDay(d) {
+  return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+}
+function fmtTime(d) {
+  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function refreshSummary() {
+  const c = computeBooking();
+  document.getElementById("blocks-zone").style.display = c.session ? "" : "none";
+  const box = document.getElementById("book-summary");
+  if (!c.startsAt) {
+    box.innerHTML = "Pick your service, date and start time — your full session shows here.";
+    return;
+  }
+  const start = new Date(c.startsAt);
+  let when = fmtDay(start) + " · " + fmtTime(start);
+  if (c.endsAt) {
+    const end = new Date(c.endsAt);
+    when += " – " + (end.toDateString() === start.toDateString() ? fmtTime(end) : fmtDay(end) + " " + fmtTime(end));
+  }
+  box.innerHTML = "<strong>Your session:</strong> " + c.label + "<br>" + when +
+    (c.hours ? " · <strong>" + c.hours + " hours</strong>" : "") +
+    "<br>Total $" + c.price + " · $" + MM_CONFIG.BOOKING_FEE + " booking fee due now to lock it in.";
+}
+
+["f-service", "f-blocks", "f-date", "f-time"].forEach(function (id) {
+  document.getElementById(id).addEventListener("change", refreshSummary);
+});
+// No booking in the past: the calendar starts at today.
+(function () {
+  const d = new Date();
+  const pad = function (n) { return String(n).padStart(2, "0"); };
+  document.getElementById("f-date").min = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+})();
+refreshSummary();
 
 document.getElementById("book-form").addEventListener("submit", async function (ev) {
   ev.preventDefault();
@@ -113,18 +183,14 @@ document.getElementById("book-form").addEventListener("submit", async function (
   const name = document.getElementById("f-name").value.trim();
   const phone = document.getElementById("f-phone").value.trim();
   const email = document.getElementById("f-email").value.trim();
-  const sel = document.getElementById("f-service");
-  const svc = sel.options[sel.selectedIndex];
-  const date = document.getElementById("f-date").value;
-  const time = document.getElementById("f-time").value;
   const notes = document.getElementById("f-notes").value.trim();
+  const c = computeBooking();
 
-  if (!name || !phone || !date || !time) {
+  if (!name || !phone || !c.startsAt) {
     err.textContent = "Please fill in your name, phone, date and start time.";
     return;
   }
 
-  const startsAt = new Date(date + "T" + time).toISOString();
   btn.disabled = true;
   btn.textContent = "Saving your booking…";
   try {
@@ -132,10 +198,12 @@ document.getElementById("book-form").addEventListener("submit", async function (
       name: name,
       phone: phone,
       email: email || null,
-      service: svc.dataset.name,
-      price: parseInt(svc.dataset.price, 10),
+      service: c.label,
+      price: c.price,
       fee_due: MM_CONFIG.BOOKING_FEE,
-      starts_at: startsAt,
+      starts_at: c.startsAt,
+      ends_at: c.endsAt,
+      hours: c.hours,
       notes: notes || null
     });
     window.location.href = "pay.html?n=" + encodeURIComponent(booking.booking_number);
